@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>英语听写 App</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap');
+    :root {
+      color-scheme: light dark;
+      --bg:#f4f6f3; --paper:#ffffff; --paper2:#eef2ed; --ink:#142019; --muted:#5e6b63;
+      --line:#d8dfda; --accent:#0e7155; --accent-ink:#ffffff; --soft:#dff1e9; --warn:#8b5c00;
+      --danger:#a4372a; --shadow:0 18px 50px rgba(24,47,35,.09);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#101512; --paper:#171e1a; --paper2:#202923; --ink:#edf4ef; --muted:#aebbb2;
+        --line:#334039; --accent:#5ad3a5; --accent-ink:#092117; --soft:#173d30; --warn:#f0bd59;
+        --danger:#ff8d7d; --shadow:0 18px 50px rgba(0,0,0,.24); }
+    }
+    *{box-sizing:border-box} html{min-height:100%;background:var(--bg)}
+    body{margin:0;min-height:100vh;font-family:"Noto Sans SC",system-ui,sans-serif;color:var(--ink);background:var(--bg);font-size:16px}
+    button,input,textarea{font:inherit} button{color:inherit}
+    .shell{width:min(980px,100%);margin:0 auto;padding:clamp(18px,4vw,44px) clamp(16px,4vw,28px) 56px}
+    .intro{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(240px,.6fr);gap:26px;align-items:end;margin:8px 0 24px}
+    h1{font-size:clamp(31px,6vw,58px);line-height:1.08;letter-spacing:-.04em;margin:0 0 12px;max-width:720px}
+    .intro p{font-size:clamp(16px,2.3vw,20px);line-height:1.7;color:var(--muted);margin:0;max-width:650px}
+    .steps{counter-reset:s;display:grid;gap:9px;padding:0;margin:0;list-style:none}
+    .steps li{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:14px}
+    .steps li:before{counter-increment:s;content:counter(s);width:26px;height:26px;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;font-weight:700;color:var(--accent)}
+    .panel{background:var(--paper);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:22px;overflow:hidden}
+    .panel-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 22px;border-bottom:1px solid var(--line)}
+    .panel-head h2{font-size:19px;margin:0}.panel-head span{color:var(--muted);font-size:13px}
+    .stage{padding:22px}.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+    .drop{position:relative;min-height:270px;border:1.5px dashed var(--line);border-radius:16px;background:var(--paper2);display:grid;place-items:center;overflow:hidden;text-align:center;padding:24px 24px 82px;transition:border-color .2s,background .2s}
+    .drop.drag{border-color:var(--accent);background:var(--soft)}
+    .file-actions{position:absolute;left:16px;right:16px;bottom:16px;z-index:3;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .file-pick{min-height:44px;border:1px solid var(--line);border-radius:11px;background:var(--paper);color:var(--ink);font-weight:700;cursor:pointer}
+    .file-pick.primary-pick{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+    .drop svg{width:46px;height:46px;color:var(--accent);margin-bottom:13px}.drop strong{font-size:18px;display:block}.drop small{color:var(--muted);display:block;margin-top:6px;line-height:1.6}
+    #preview{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#111;display:none;z-index:1}
+    .editor label{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-weight:700;margin-bottom:9px}.editor label span{font-weight:400;color:var(--muted);font-size:12px}
+    textarea{width:100%;height:198px;resize:vertical;border:1px solid var(--line);border-radius:14px;background:var(--paper2);color:var(--ink);padding:15px;line-height:1.75;outline:none}
+    textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+    .hint{color:var(--muted);font-size:13px;line-height:1.55;margin:9px 2px 0}
+    .mode-row{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
+    .mode-copy strong{display:block;font-size:15px}.mode-copy span{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+    .mode-control{display:flex;gap:5px;margin:0;padding:4px;border:1px solid var(--line);border-radius:13px;background:var(--paper2)}
+    .mode-control label{display:flex;align-items:center;gap:7px;padding:8px 11px;border-radius:9px;color:var(--muted);font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer}
+    .mode-control label:has(input:checked){background:var(--paper);color:var(--accent);box-shadow:0 1px 5px rgba(20,32,25,.08)}
+    .mode-control input{width:17px;height:17px;margin:0;accent-color:var(--accent);cursor:pointer}
+    .mode-control input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+    .btn{border:0;border-radius:12px;padding:11px 16px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px}
+    .btn.primary{background:var(--accent);color:var(--accent-ink)}.btn.secondary{background:var(--paper2);border:1px solid var(--line)}.btn:disabled{opacity:.45;cursor:not-allowed}
+    .status{display:none;margin-top:16px;padding:12px 14px;border-radius:12px;background:var(--soft);color:var(--ink);font-size:14px;line-height:1.5}.status.show{display:block}.status.error{background:color-mix(in srgb,var(--danger) 12%,var(--paper));color:var(--danger)}
+    .progress-wrap{display:none;padding:17px 22px;border-bottom:1px solid var(--line);align-items:center;gap:14px}.progress-wrap.show{display:flex}.progress{height:8px;flex:1;background:var(--paper2);border-radius:99px;overflow:hidden}.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}.counter{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px;white-space:nowrap}
+    .session{display:none;padding:clamp(24px,5vw,50px);text-align:center;min-height:520px;place-items:center}.session.show{display:grid}.session-inner{width:min(620px,100%)}
+    .prompt-kicker{color:var(--muted);font-size:14px;margin-bottom:15px}.meaning{font-size:clamp(34px,7vw,64px);line-height:1.25;letter-spacing:-.03em;font-weight:800;margin:0 auto 18px;max-width:620px}
+    .listen-state{display:inline-flex;align-items:center;gap:8px;background:var(--paper2);border:1px solid var(--line);border-radius:999px;padding:8px 12px;color:var(--muted);font-size:13px}.dot{width:8px;height:8px;border-radius:50%;background:var(--line)}.listening .dot{background:var(--accent);box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 15%,transparent)}
+    .answer{min-height:57px;margin:24px auto 8px;padding:13px 18px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:21px;color:transparent;transition:color .18s}.answer.revealed{color:var(--ink)}
+    .session-actions{display:grid;grid-template-columns:1fr 1.5fr;gap:11px;margin-top:18px}.ready{font-size:18px;padding:15px 18px;min-height:58px}
+    .sub-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px}.sub-actions button{border:0;background:transparent;color:var(--muted);padding:8px 10px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+    .done{display:none;padding:56px 24px;text-align:center}.done.show{display:block}.done .ring{width:84px;height:84px;border-radius:50%;background:var(--soft);color:var(--accent);display:grid;place-items:center;margin:0 auto 18px}.done h2{font-size:34px;margin:0 0 8px}.done p{color:var(--muted);margin:0 0 23px}
+    .privacy{color:var(--muted);font-size:12px;text-align:center;margin:16px 0 0}
+    @media(max-width:720px){.intro{grid-template-columns:1fr;gap:18px}.steps{grid-template-columns:repeat(3,1fr)}.steps li{display:grid;text-align:center;justify-items:center}.upload-grid{grid-template-columns:1fr}.drop{min-height:225px}.stage{padding:15px}.panel-head{padding:17px}.session{min-height:470px}.session-actions{grid-template-columns:1fr}.session-actions .ready{grid-row:1}.shell{padding-bottom:30px}}
+    @media(max-width:520px){.mode-row{align-items:stretch;flex-direction:column;gap:12px}.mode-control{display:grid;grid-template-columns:1fr 1fr}.mode-control span{text-align:center}}
+    @media(max-width:410px){.steps li{font-size:12px}.btn{width:100%}.actions{display:grid}.sub-actions button{font-size:14px}.panel{border-radius:16px}}
+    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="intro" id="intro">
+      <div><h1>拍一张，马上开始听写</h1><p>识别照片里的英文和中文释义，自动区分单词和句子；可按原顺序或随机报题。</p></div>
+      <ol class="steps"><li>拍照识别</li><li>检查清单</li><li>选择顺序</li></ol>
+    </section>
+
+    <section class="panel" id="setupPanel">
+      <header class="panel-head"><h2>准备听写内容</h2><span>本次页面内使用</span></header>
+      <div class="stage">
+        <div class="upload-grid">
+          <div class="drop" id="dropZone">
+            <div id="dropCopy">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 7.5h3l1.4-2h7.2l1.4 2h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg>
+              <strong>拍照或从相册选取</strong><small>尽量正对纸面，光线均匀<br>支持单词和短句</small>
+            </div>
+            <img id="preview" alt="待识别的听写材料照片">
+            <div class="file-actions">
+              <button class="file-pick primary-pick" type="button" id="cameraBtn">拍照</button>
+              <button class="file-pick" type="button" id="albumBtn">从相册选取</button>
+              <input type="file" id="photoInput" accept="image/*" capture="environment" aria-label="拍摄单词表照片" hidden>
+              <input type="file" id="albumInput" accept="image/*" aria-label="从相册选取单词表照片" hidden>
+            </div>
+          </div>
+          <div class="editor">
+            <label for="listText">听写清单 <span>每行：英文 = 中文</span></label>
+            <textarea id="listText" spellcheck="false" placeholder="例如：&#10;apple = 苹果&#10;How are you? = 你好吗？"></textarea>
+            <p class="hint">系统会自动判断单词/词组或句子。如需纠正，可在行首加【单词】或【句子】。</p>
+          </div>
+        </div>
+        <div class="mode-row">
+          <div class="mode-copy"><strong>出题顺序</strong><span>保留清单顺序，或每轮重新打乱</span></div>
+          <fieldset class="mode-control" aria-label="选择出题顺序">
+            <label><input type="radio" name="orderMode" value="sequence"><span>按清单顺序</span></label>
+            <label><input type="radio" name="orderMode" value="random" checked><span>随机顺序</span></label>
+          </fieldset>
+        </div>
+        <div class="actions">
+          <button class="btn secondary" id="ocrBtn" disabled>
+            <span>识别照片</span>
+          </button>
+          <button class="btn primary" id="startBtn" disabled>随机开始</button>
+        </div>
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+      </div>
+      <div class="progress-wrap" id="progressWrap"><div class="progress"><i id="progressBar"></i></div><span class="counter" id="counter">1 / 1</span></div>
+      <div class="session" id="session">
+        <div class="session-inner">
+          <div class="prompt-kicker" id="promptKicker">单词 · 请写出对应的英文</div>
+          <div class="meaning" id="meaning">苹果</div>
+          <div class="listen-state" id="listenState"><span class="dot"></span><span id="listenText">可点“语音接力”开启免手操作</span></div>
+          <div class="answer" id="answer" aria-live="polite">apple</div>
+          <div class="session-actions">
+            <button class="btn secondary" id="repeatBtn">再报一遍</button>
+            <button class="btn primary ready" id="nextBtn">好了，下一题</button>
+          </div>
+          <div class="sub-actions">
+            <button id="revealBtn">显示答案</button>
+            <button id="typeBtn">改为句子</button>
+            <button id="voiceBtn">开启语音接力</button>
+            <button id="endBtn">提前结束</button>
+          </div>
+        </div>
+      </div>
+      <div class="done" id="done">
+        <div class="ring" aria-hidden="true"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4 10-10"/></svg></div>
+        <h2>听写完成</h2><p id="doneText">一共完成 0 题</p>
+        <button class="btn primary" id="againBtn">再来一轮</button>
+      </div>
+    </section>
+    <p class="privacy">照片和清单不会保存；刷新页面后会清空。</p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+  <script>
+    (function(){
+      var photoInput=document.getElementById('photoInput'), albumInput=document.getElementById('albumInput'), cameraBtn=document.getElementById('cameraBtn'), albumBtn=document.getElementById('albumBtn'), preview=document.getElementById('preview'), dropCopy=document.getElementById('dropCopy');
+      var listText=document.getElementById('listText'), ocrBtn=document.getElementById('ocrBtn'), startBtn=document.getElementById('startBtn');
+      var statusEl=document.getElementById('status'), setupStage=document.querySelector('.stage'), session=document.getElementById('session'), done=document.getElementById('done');
+      var progressWrap=document.getElementById('progressWrap'), progressBar=document.getElementById('progressBar'), counter=document.getElementById('counter');
+      var meaning=document.getElementById('meaning'), answer=document.getElementById('answer'), nextBtn=document.getElementById('nextBtn'), promptKicker=document.getElementById('promptKicker');
+      var repeatBtn=document.getElementById('repeatBtn'), revealBtn=document.getElementById('revealBtn'), typeBtn=document.getElementById('typeBtn'), endBtn=document.getElementById('endBtn');
+      var againBtn=document.getElementById('againBtn'), voiceBtn=document.getElementById('voiceBtn'), listenState=document.getElementById('listenState'), listenText=document.getElementById('listenText');
+      var orderModes=document.querySelectorAll('input[name="orderMode"]');
+      var imageUrl='', items=[], order=[], index=0, recognition=null, voiceMode=false, recognitionActive=false, speechBusy=false, speechToken=0, advancing=false, activeMode='random', lastVoiceAdvance=0;
+
+      function setStatus(text,isError){statusEl.textContent=text;statusEl.className='status show'+(isError?' error':'');}
+      function clearStatus(){statusEl.className='status';statusEl.textContent='';}
+      function escapePairText(s){return s.replace(/\s+/g,' ').trim();}
+      function detectType(en){
+        var words=en.match(/[A-Za-z]+(?:['’\-][A-Za-z]+)*/g)||[], first=(words[0]||'').toLowerCase();
+        if(/[.!?,;]/.test(en)||words.length>=4) return 'sentence';
+        if(words.length>=2&&/^(what|where|when|why|who|whose|which|how|can|could|will|would|shall|should|do|does|did|is|are|was|were|have|has|please)$/.test(first)) return 'sentence';
+        if(words.length>=2&&/^(go|come|look|listen|open|close|write|read|sit|stand|turn|take|put|give|show|tell|say|let|make|keep|stop|wait|try|remember)$/.test(first)) return 'sentence';
+        if(words.length>=2&&/^(i|you|he|she|it|we|they)$/.test(first)) return 'sentence';
+        return 'word';
+      }
+      function selectedMode(){var checked=document.querySelector('input[name="orderMode"]:checked');return checked?checked.value:'random';}
+      function parseList(){
+        return listText.value.split(/\n+/).map(function(line){
+          var forcedType='', typeHit=line.match(/^\s*[\[【](单词|词组|句子)[\]】]\s*/);
+          if(typeHit){forcedType=typeHit[1]==='句子'?'sentence':'word';line=line.slice(typeHit[0].length);}
+          line=line.replace(/^\s*[\d一二三四五六七八九十]+[.、)）]\s*/, '').trim();
+          var parts=line.split(/\s*(?:=|＝|→|—|–|:|：|\t)\s*/);
+          if(parts.length<2){
+            var hit=line.match(/^(.+?[A-Za-z][A-Za-z\s'’.,?!-]*?)\s+([\u3400-\u9fff].*)$/);
+            if(hit) parts=[hit[1],hit[2]];
+          }
+          var en=escapePairText(parts.shift()||''), zh=escapePairText(parts.join(' ')||'');
+          if(/[\u3400-\u9fff]/.test(en)&&/[A-Za-z]/.test(zh)){var t=en;en=zh;zh=t;}
+          if(!/[A-Za-z]/.test(en)||!/[\u3400-\u9fff]/.test(zh)) return null;
+          return {en:en,zh:zh,type:forcedType||detectType(en)};
+        }).filter(Boolean);
+      }
+      function updateStart(){
+        var n=parseList().length, mode=selectedMode(), label=mode==='sequence'?'按顺序开始':'随机开始';
+        startBtn.disabled=n===0;startBtn.textContent=n?label+'（'+n+'题）':label;
+      }
+      listText.addEventListener('input',updateStart);
+      Array.prototype.forEach.call(orderModes,function(radio){radio.addEventListener('change',updateStart);});
+
+      function loadFile(file){
+        if(!file||!file.type.match(/^image\//)){setStatus('请选择一张图片。',true);return;}
+        if(imageUrl) URL.revokeObjectURL(imageUrl); imageUrl=URL.createObjectURL(file);
+        preview.src=imageUrl; preview.style.display='block'; dropCopy.style.display='none'; ocrBtn.disabled=false; clearStatus();
+      }
+      cameraBtn.addEventListener('click',function(){photoInput.click();});
+      albumBtn.addEventListener('click',function(){albumInput.click();});
+      photoInput.addEventListener('change',function(){loadFile(this.files[0]);this.value='';});
+      albumInput.addEventListener('change',function(){loadFile(this.files[0]);this.value='';});
+      var drop=document.getElementById('dropZone');
+      ['dragenter','dragover'].forEach(function(e){drop.addEventListener(e,function(ev){ev.preventDefault();drop.classList.add('drag');});});
+      ['dragleave','drop'].forEach(function(e){drop.addEventListener(e,function(ev){ev.preventDefault();drop.classList.remove('drag');});});
+      drop.addEventListener('drop',function(e){loadFile(e.dataTransfer.files[0]);});
+
+      function textToPairs(raw){
+        var lines=raw.split(/\n+/).map(function(x){return x.trim();}).filter(Boolean), out=[];
+        lines.forEach(function(line){
+          var enParts=line.match(/[A-Za-z][A-Za-z0-9'’\-]*(?:\s+[A-Za-z][A-Za-z0-9'’\-]*)*/g);
+          var zhParts=line.match(/[\u3400-\u9fff][\u3400-\u9fff，。！？、；：“”‘’（）\s]*/g);
+          if(enParts&&zhParts){
+            var en=escapePairText(enParts.sort(function(a,b){return b.length-a.length;})[0]);
+            var zh=escapePairText(zhParts.join(' '));
+            if(en&&zh) out.push(en+' = '+zh);
+          }
+        });
+        return out;
+      }
+      ocrBtn.addEventListener('click',async function(){
+        if(!imageUrl)return;
+        if(!window.Tesseract){setStatus('识别组件暂时没有加载，请检查网络后重试。',true);return;}
+        ocrBtn.disabled=true; startBtn.disabled=true;
+        try{
+          var result=await Tesseract.recognize(imageUrl,'eng+chi_sim',{logger:function(m){
+            if(m.status==='recognizing text') setStatus('正在识别照片… '+Math.round((m.progress||0)*100)+'%');
+            else setStatus('正在准备识别…');
+          }});
+          var pairs=textToPairs(result.data.text||'');
+          if(pairs.length){
+            listText.value=pairs.join('\n');updateStart();
+            var detected=parseList(), wordCount=detected.filter(function(item){return item.type==='word';}).length, sentenceCount=detected.length-wordCount;
+            setStatus('识别到 '+wordCount+' 个单词/词组、'+sentenceCount+' 个句子。请检查中英文是否配对正确，再开始听写。');
+          }
+          else {listText.value=(result.data.text||'').trim();updateStart();setStatus('照片文字已放入清单，但没能自动配对。请改成“英文 = 中文”，每行一条。',true);}
+        }catch(e){setStatus('这张照片没有识别成功。可以换一张更清晰的照片，或直接输入清单。',true);}
+        ocrBtn.disabled=false;
+      });
+
+      function shuffle(arr){for(var i=arr.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=arr[i];arr[i]=arr[j];arr[j]=t;}return arr;}
+      function stopListening(){
+        if(recognition&&recognitionActive){try{recognition.stop();}catch(e){}}
+      }
+      function resumeListening(){
+        if(!voiceMode||speechBusy||!recognition||recognitionActive)return;
+        try{recognition.start();}catch(e){setTimeout(resumeListening,300);}
+      }
+      function speak(text,onDone){
+        if(!('speechSynthesis' in window)){if(onDone)onDone();return;}
+        speechToken++;var token=speechToken;speechBusy=true;stopListening();speechSynthesis.cancel();
+        var u=new SpeechSynthesisUtterance(text), finished=false;
+        u.lang='zh-CN';u.rate=.82;u.pitch=1;
+        function complete(){
+          if(finished||token!==speechToken)return;finished=true;speechBusy=false;
+          if(onDone)onDone();
+          if(voiceMode&&!speechBusy)setTimeout(resumeListening,250);
+        }
+        u.onend=complete;u.onerror=complete;speechSynthesis.speak(u);
+      }
+      function renderType(){
+        var item=order[index], isSentence=item.type==='sentence';
+        promptKicker.textContent=(isSentence?'句子':'单词/词组')+' · 请写出对应的英文';
+        typeBtn.textContent=isSentence?'改为单词/词组':'改为句子';
+      }
+      function renderQuestion(acknowledge){
+        var item=order[index];renderType();
+        meaning.textContent=item.zh; answer.textContent=item.en;answer.classList.remove('revealed');revealBtn.textContent='显示答案';
+        counter.textContent=(index+1)+' / '+order.length;progressBar.style.width=((index+1)/order.length*100)+'%';
+        setTimeout(function(){
+          if(acknowledge)speak('好的，下一个听写。',function(){speak(item.zh);});
+          else speak(item.zh);
+        },180);
+      }
+      function makeOrder(){return activeMode==='sequence'?items.slice():shuffle(items.slice());}
+      function startRound(){
+        items=parseList(); if(!items.length){setStatus('请先按“英文 = 中文”的格式准备至少一条内容。',true);return;}
+        activeMode=selectedMode();order=makeOrder();index=0;setupStage.style.display='none';done.classList.remove('show');session.classList.add('show');progressWrap.classList.add('show');
+        renderQuestion();document.getElementById('setupPanel').scrollIntoView({behavior:'smooth',block:'start'});
+      }
+      startBtn.addEventListener('click',startRound); repeatBtn.addEventListener('click',function(){speak(order[index].zh);});
+      revealBtn.addEventListener('click',function(){answer.classList.toggle('revealed');this.textContent=answer.classList.contains('revealed')?'隐藏答案':'显示答案';});
+      typeBtn.addEventListener('click',function(){order[index].type=order[index].type==='sentence'?'word':'sentence';renderType();});
+      function advance(fromVoice){
+        var now=Date.now();
+        if(fromVoice&&now-lastVoiceAdvance<1500)return;
+        if(advancing)return;
+        if(fromVoice)lastVoiceAdvance=now;
+        advancing=true;setTimeout(function(){advancing=false;},850);
+        if(index<order.length-1){index++;renderQuestion(!!fromVoice);}else finish(!!fromVoice);
+      }
+      nextBtn.addEventListener('click',function(){advance(false);});
+      function finish(fromVoice){
+        if('speechSynthesis' in window)speechSynthesis.cancel();
+        session.classList.remove('show');progressWrap.classList.remove('show');done.classList.add('show');
+        document.getElementById('doneText').textContent='一共完成 '+(index+1)+' 题';stopVoice();
+        if(fromVoice)setTimeout(function(){speak('好的，听写完成。');},120);
+      }
+      endBtn.addEventListener('click',function(){finish(false);});
+      againBtn.addEventListener('click',function(){done.classList.remove('show');session.classList.add('show');progressWrap.classList.add('show');order=makeOrder();index=0;renderQuestion(false);});
+
+      function stopVoice(){
+        voiceMode=false;stopListening();voiceBtn.textContent='开启语音接力';listenState.classList.remove('listening');listenText.textContent='可点“语音接力”开启免手操作';
+      }
+      function startVoice(){
+        var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+        if(!SR){listenText.textContent='当前浏览器不支持语音接力，请使用按钮';voiceBtn.disabled=true;return;}
+        if(!recognition){
+          recognition=new SR();recognition.lang='zh-CN';recognition.continuous=true;recognition.interimResults=false;
+          recognition.onstart=function(){
+            recognitionActive=true;
+            if(voiceMode&&!speechBusy){listenState.classList.add('listening');listenText.textContent='正在听：说“好了”进入下一题';}
+          };
+          recognition.onresult=function(e){
+            var words='';
+            for(var i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)words+=e.results[i][0].transcript;}
+            if(/好了|好啦|下一个|下一题|继续/.test(words)){
+              listenState.classList.remove('listening');listenText.textContent='听到了“好了”，正在进入下一题';stopListening();advance(true);
+            }
+          };
+          recognition.onerror=function(e){
+            recognitionActive=false;
+            if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+              stopVoice();listenText.textContent='没有麦克风权限，请使用“好了，下一题”按钮';voiceBtn.disabled=true;
+            }
+          };
+          recognition.onend=function(){
+            recognitionActive=false;listenState.classList.remove('listening');
+            if(voiceMode&&!speechBusy)setTimeout(resumeListening,350);
+          };
+        }
+        voiceMode=true;voiceBtn.textContent='关闭语音接力';listenText.textContent=speechBusy?'播报后会自动开始聆听':'正在开启麦克风…';resumeListening();
+      }
+      voiceBtn.addEventListener('click',function(){if(voiceMode)stopVoice();else startVoice();});
+      document.addEventListener('keydown',function(e){if(session.classList.contains('show')&&(e.key===' '||e.key==='Enter')){e.preventDefault();advance(false);}});
+    })();
+  </script>
+</body>
+</html>
